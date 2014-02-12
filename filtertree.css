@@ -1,0 +1,31 @@
+.filtertree {
+    font-size: small;
+    line-height: 14px;
+}
+
+.filtertree ul {
+    list-style-type: none;
+    margin: 0;
+}
+
+.filtertree li {
+    padding: 1px;
+}
+
+.filtertree li.ft-group, .filtertree li.ft-filter {
+    list-style-type: square;
+    list-style-position: inside;
+}
+
+.filtertree ul.ft-root {
+    padding: 0;
+}
+
+.filtertree input, .filtertree select {
+    margin-right: 2px;
+    border: 1px solid #ccc;
+}
+
+.filtertree button {
+    margin-right: 2px;
+}
