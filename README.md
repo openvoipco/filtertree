@@ -11,4 +11,4 @@ Nested filters
 Saving state in cookies
 Query builder
 
-Check out wiki for help...
+[Check out wiki for help...](https://github.com/openvoipco/filtertree/wiki/Main-wiki---how-to)
