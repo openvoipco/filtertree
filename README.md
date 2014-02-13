@@ -10,5 +10,7 @@ I18N
 Nested filters
 Saving state in cookies
 Query builder
+Field editors (native support for Bootstrap datepicker)
+
 
 Check out wiki for help...

@@ -60,7 +60,29 @@ THE SOFTWARE.
         defaultConcat: 'and',
         defaultCond: 'eq',
         onChangeDelay: 500, // this is a delay of firing onChange when user is changing the value data
-        filters: {},
+        editors: {
+            bootstrapDatepicker: { // it should be equal to a filter type
+                settings: {}, // configuration for the datepicker
+                attach: function(plugin, editor) {
+                    var el = $(this);
+                    if (typeof($.fn.datepicker) === 'function') {
+                        el.datepicker(editor.settings);
+                        el.datepicker().on('changeDate', function(e) {
+                            plugin.settings.onChange.apply(el);
+                        });
+                        el.data('editor', editor);
+                    }
+                },
+                detach: function(plugin, editor) {
+                    var el = $(this);
+                    if (typeof($.fn.datepicker) === 'function') {
+                        $(this).datepicker('remove');
+                        el.data('editor', null);
+                    }
+                }
+            }
+        },
+        filters: {}, // format is: { fieldName: { label: 'Label', editor: 'date | text' }, ... }
         i18n: {
             'select.concatination': 'Select concatination',
             'select.condition': 'Select condition',
@@ -136,8 +158,6 @@ THE SOFTWARE.
                 $element.empty();
                 $element.append(plugin.buildRoot(data['concat']));
                 plugin.setData(data, plugin.getRoot());
-                
-                plugin.settings.onChange.apply(this);
             }
         };
         
@@ -313,7 +333,11 @@ THE SOFTWARE.
             for (var key in plugin.settings.filters) {
                 var filter = plugin.settings.filters[key];
                 var label = getProp(filter, 'label', key);
-                var option = $('<option></option>').attr('value', key).html(label);
+                var editor = getProp(filter, 'editor', '');
+                var option = $('<option></option>')
+                    .attr('value', key)
+                    .data('editor', getProp(plugin.settings.editors, editor))
+                    .html(label);
                 if (key === defaultField)
                     option.attr('selected', 'selected');
                 data.push(option);
@@ -323,7 +347,8 @@ THE SOFTWARE.
                 .attr('title', trans('select.field'))
                 .addClass('ft-field')
                 .append(data)
-                .on('change', plugin.settings.onChange);
+                .on('change', onChangeField)
+                .on('change', plugin.settings.onChange)
         };
                 
         // make condition list
@@ -391,22 +416,22 @@ THE SOFTWARE.
         };
         
         plugin.buildFilter = function(defaultCond, defaultField, defaultValue) {
+            var field = plugin.buildFields(defaultField);
             var node = $('<li></li>')
                 .addClass('ft-filter')
-                .append(plugin.buildFields(defaultField))
+                .append(field)
                 .append(plugin.buildConditions(defaultCond))
                 .append(plugin.buildValue(defaultValue))
                 .append($('<button title="' + trans('remove.condition') + '" type="button" class="ft-button">' + trans('remove.condition') + '</button>').on('click', plugin.onRemoveCondition));
-        
+            
+            // init field
+            onChangeField.apply(field);
+            
             return node;
         };
         
 
         // private methods
-        var trans = function(id) {
-            return (id in plugin.settings.i18n ? plugin.settings.i18n[id] : id);
-        };
-        
         var getConfigHash = function() {
             var hash = [
                 plugin.settings.salt,
@@ -422,6 +447,26 @@ THE SOFTWARE.
         var getProp = function(obj, key, defaultValue) {
             return (typeof(obj) === 'object' && (key in obj)) ? obj[key] : defaultValue;
         };
+
+        var trans = function(id) {
+            return getProp(plugin.settings.i18n, id, id);
+        };
+        
+        var onChangeField = function(e) {
+            var $this = $(this); // select
+            var field = $this.children(':selected'); // option
+            var value = $this.parent().children('.ft-value');
+            var editor = field.data('editor');
+            var currentEditor = value.data('editor');
+            
+            // detach old editor
+            if (currentEditor)
+                currentEditor.detach.apply(value, [plugin, currentEditor]);
+            
+            // attach new editor
+            if (editor)
+                editor.attach.apply(value, [plugin, editor]);
+        }
         
         // construct
         plugin.init();
