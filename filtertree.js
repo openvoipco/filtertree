@@ -54,20 +54,22 @@ THE SOFTWARE.
     
     $.ftSettings = {
         salt: '', // is being used in the state hash creation (good for unique state per control)
-        maxGroups: 2,
-        maxFilters: 3,
+        maxGroups: 100,
+        maxFilters: 100,
         defaultField: '',
         defaultConcat: 'and',
         defaultCond: 'eq',
         onChangeDelay: 500, // this is a delay of firing onChange when user is changing the value data
         editors: {
             bootstrapDatepicker: { // it should be equal to a filter type
-                settings: {}, // configuration for the datepicker
-                attach: function(plugin, editor) {
+                settings: {
+                    format: 'yyyy-mm-dd'
+                }, // configuration for the datepicker
+                attach: function(plugin, editor, editorSettings) {
                     var el = $(this);
                     if (typeof($.fn.datepicker) === 'function') {
-                        el.datepicker(editor.settings);
-                        el.datepicker().on('changeDate', function(e) {
+                        el.datepicker($.extend(true, {}, editor.settings, editorSettings))
+                        .on('changeDate', function(e) {
                             plugin.settings.onChange.apply(el);
                         });
                         el.data('editor', editor);
@@ -82,7 +84,7 @@ THE SOFTWARE.
                 }
             }
         },
-        filters: {}, // format is: { fieldName: { label: 'Label', editor: 'date | text' }, ... }
+        filters: {}, // format is: { fieldName: { label: 'Label', editor: 'editor id like bootstrapDatepicker', editorSettings: { this object will be used to construct editor } }, ... }
         i18n: {
             'select.concatination': 'Select concatination',
             'select.condition': 'Select condition',
@@ -116,24 +118,36 @@ THE SOFTWARE.
             and: 'concat.and',
             or: 'concat.or'
         },
-        onChange: function() {}
+        style: {
+            addButtonText: true,
+            groupClass: '',
+            filterClass: '',
+            buttonClass: '',
+            concatClass: '',
+            fieldClass: '',
+            condClass: '',
+            valueClass: ''
+        },
+        onChange: function() {},
+        onInit: function() {}
     };
     
-    $.filtertree = function(element, options) {
+    $.filtertree = function(element, settings) {
 
         var $element = $(element);
         var plugin = this;
 
         // constructor
         plugin.init = function() {
-            plugin.settings = $.extend({}, $.ftSettings, options);
-
+            plugin.settings = $.extend(true, {}, $.ftSettings, settings);
+            
             // normalize filters
             if (typeof(plugin.settings.filters) !== 'object')
-                plugin.settings.filters = {};
+                throw new Error('Object expected');
             for (var key in plugin.settings.filters) {
-                if (typeof(plugin.settings.filters[key]) !== 'object')
-                    plugin.settings.filters[key] = {label: plugin.settings.filters[key]};
+                var filter = plugin.settings.filters[key];
+                if (typeof(filter) !== 'object')
+                    plugin.settings.filters[key] = {label: filter};
             }
 
             // build widget
@@ -141,6 +155,8 @@ THE SOFTWARE.
                 .addClass('filtertree')
                 .empty()
                 .append(plugin.buildRoot(plugin.settings.defaultConcat));
+        
+            plugin.settings.onInit.apply(plugin);
         }
 
         // public methods
@@ -320,23 +336,40 @@ THE SOFTWARE.
         };
 
         plugin.buildRoot = function(defaultConcat) {
-            var root = plugin.buildGroup(defaultConcat).addClass('ft-root');
+            var root = plugin.buildGroup(defaultConcat).addClass('ft-root').addClass(plugin.settings.style.groupClass);
             root.find('.ft-controls')
-                .append($('<button title="' + trans('remove.filters') + '" class="ft-button">' + trans('remove.filters') + '</button>').on('click', plugin.onRemoveFilters));
+                .append(
+                    $('<button title="' + trans('remove.filters') + '" class="ft-button">' + trans('remove.filters') + '</button>')
+                    .on('click', plugin.onRemoveFilters)
+                );
             
             return root;
         }
 
-        // make field list
+        plugin.buildButton = function(handler, title) {
+            var button = $('<button></button>')
+                .addClass('ft-button')
+                .addClass(plugin.settings.style.buttonClass)
+                .attr('title', title)
+                .on('click', handler);
+    
+            if (plugin.settings.style.addButtonText)
+                button.html(title);
+            
+            return button;
+        }
+        
         plugin.buildFields = function(defaultField) {
             var data = [];
             for (var key in plugin.settings.filters) {
                 var filter = plugin.settings.filters[key];
                 var label = getProp(filter, 'label', key);
                 var editor = getProp(filter, 'editor', '');
+                var editorSettings = getProp(filter, 'editorSettings');
                 var option = $('<option></option>')
                     .attr('value', key)
                     .data('editor', getProp(plugin.settings.editors, editor))
+                    .data('editorSettings', editorSettings)
                     .html(label);
                 if (key === defaultField)
                     option.attr('selected', 'selected');
@@ -346,6 +379,7 @@ THE SOFTWARE.
             return $('<select><select>')
                 .attr('title', trans('select.field'))
                 .addClass('ft-field')
+                .addClass(plugin.settings.style.fieldClass)
                 .append(data)
                 .on('change', onChangeField)
                 .on('change', plugin.settings.onChange)
@@ -363,6 +397,7 @@ THE SOFTWARE.
             return $('<select><select>')
                 .attr('title', trans('select.condition'))
                 .addClass('ft-cond')
+                .addClass(plugin.settings.style.condClass)
                 .append(data)
                 .on('change', plugin.settings.onChange);
         };
@@ -379,6 +414,7 @@ THE SOFTWARE.
             return $('<select><select>')
                 .attr('title', trans('select.concatination'))
                 .addClass('ft-concat')
+                .addClass(plugin.settings.style.concatClass)
                 .append(data)
                 .on('change', plugin.settings.onChange);
         };
@@ -387,6 +423,7 @@ THE SOFTWARE.
         plugin.buildValue = function(defaultValue) {
             return $('<input>')
                 .addClass('ft-value')
+                .addClass(plugin.settings.style.valueClass)
                 .attr('type', 'text')
                 .val(defaultValue || '')
                 .on('change', plugin.settings.onValueChange)
@@ -407,9 +444,10 @@ THE SOFTWARE.
                 .append(
                     $('<li></li>')
                     .addClass('ft-controls')
+                    .addClass(plugin.settings.style.groupClass)
                     .append(plugin.buildConcats(defaultConcat))
-                    .append($('<button title="' + trans('add.condition') + '" class="ft-button">' + trans('add.condition') + '</button>').on('click', plugin.onAddFilter))
-                    .append($('<button title="' + trans('add.group') + '" class="ft-button">' + trans('add.group') + '</button>').on('click', plugin.onAddGroup))
+                    .append(plugin.buildButton(plugin.onAddFilter, trans('add.condition')))
+                    .append(plugin.buildButton(plugin.onAddGroup, trans('add.group')))
                 );
         
             return node;
@@ -419,10 +457,11 @@ THE SOFTWARE.
             var field = plugin.buildFields(defaultField);
             var node = $('<li></li>')
                 .addClass('ft-filter')
+                .addClass(plugin.settings.style.filterClass)
                 .append(field)
                 .append(plugin.buildConditions(defaultCond))
                 .append(plugin.buildValue(defaultValue))
-                .append($('<button title="' + trans('remove.condition') + '" type="button" class="ft-button">' + trans('remove.condition') + '</button>').on('click', plugin.onRemoveCondition));
+                .append(plugin.buildButton(plugin.onRemoveCondition, trans('remove.condition')));
             
             // init field
             onChangeField.apply(field);
@@ -457,6 +496,7 @@ THE SOFTWARE.
             var field = $this.children(':selected'); // option
             var value = $this.parent().children('.ft-value');
             var editor = field.data('editor');
+            var editorSettings = field.data('editorSettings');
             var currentEditor = value.data('editor');
             
             // detach old editor
@@ -464,8 +504,9 @@ THE SOFTWARE.
                 currentEditor.detach.apply(value, [plugin, currentEditor]);
             
             // attach new editor
-            if (editor)
-                editor.attach.apply(value, [plugin, editor]);
+            if (editor) {
+                editor.attach.apply(value, [plugin, editor, editorSettings]);
+            }
         }
         
         // construct
