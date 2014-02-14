@@ -3,7 +3,7 @@
 Filtertree JQuery plugin - easy way to build filters on page
 
 @name: filtertree
-@version: 0.0.1
+@version: 0.0.2
 @author: Roman Davydov <openvoip.co@gmail.com>
 @site: http://www.openvoip.co
 @license: MIT
@@ -122,7 +122,10 @@ THE SOFTWARE.
             addButtonText: true,
             groupClass: '',
             filterClass: '',
-            buttonClass: '',
+            addButtonClass: '',
+            addGroupButtonClass: '',
+            removeButtonClass: '',
+            resetButtonClass: '',
             concatClass: '',
             fieldClass: '',
             condClass: '',
@@ -337,18 +340,16 @@ THE SOFTWARE.
 
         plugin.buildRoot = function(defaultConcat) {
             var root = plugin.buildGroup(defaultConcat).addClass('ft-root').addClass(plugin.settings.style.groupClass);
-            root.find('.ft-controls')
-                .append(
-                    $('<button title="' + trans('remove.filters') + '" class="ft-button">' + trans('remove.filters') + '</button>')
-                    .on('click', plugin.onRemoveFilters)
-                );
+            root.find('.ft-controls').append(
+                plugin.buildButton(plugin.onRemoveFilters, trans('remove.filters'), plugin.settings.style.resetButtonClass)
+            );
             
             return root;
         }
 
-        plugin.buildButton = function(handler, title) {
+        plugin.buildButton = function(handler, title, cssClass) {
             var button = $('<button></button>')
-                .addClass('ft-button')
+                .addClass('ft-button ' + cssClass)
                 .addClass(plugin.settings.style.buttonClass)
                 .attr('title', title)
                 .on('click', handler);
@@ -446,8 +447,8 @@ THE SOFTWARE.
                     .addClass('ft-controls')
                     .addClass(plugin.settings.style.groupClass)
                     .append(plugin.buildConcats(defaultConcat))
-                    .append(plugin.buildButton(plugin.onAddFilter, trans('add.condition')))
-                    .append(plugin.buildButton(plugin.onAddGroup, trans('add.group')))
+                    .append(plugin.buildButton(plugin.onAddFilter, trans('add.condition'), plugin.settings.style.addButtonClass))
+                    .append(plugin.buildButton(plugin.onAddGroup, trans('add.group'), plugin.settings.style.addGroupButtonClass))
                 );
         
             return node;
@@ -461,7 +462,7 @@ THE SOFTWARE.
                 .append(field)
                 .append(plugin.buildConditions(defaultCond))
                 .append(plugin.buildValue(defaultValue))
-                .append(plugin.buildButton(plugin.onRemoveCondition, trans('remove.condition')));
+                .append(plugin.buildButton(plugin.onRemoveCondition, trans('remove.condition'), plugin.settings.style.removeButtonClass));
             
             // init field
             onChangeField.apply(field);
