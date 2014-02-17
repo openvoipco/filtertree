@@ -65,22 +65,44 @@ THE SOFTWARE.
                 settings: {
                     format: 'yyyy-mm-dd'
                 }, // configuration for the datepicker
-                attach: function(plugin, editor, editorSettings) {
+                attach: function(plugin, settings) {
                     var el = $(this);
                     if (typeof($.fn.datepicker) === 'function') {
-                        el.datepicker($.extend(true, {}, editor.settings, editorSettings))
+                        el.datepicker(settings)
                         .on('changeDate', function(e) {
                             plugin.settings.onChange.apply(el);
                         });
-                        el.data('editor', editor);
                     }
                 },
-                detach: function(plugin, editor) {
+                detach: function(plugin) {
                     var el = $(this);
                     if (typeof($.fn.datepicker) === 'function') {
                         $(this).datepicker('remove');
-                        el.data('editor', null);
                     }
+                }
+            },
+            listPicker: {
+                settings: {
+                   items: {}
+                },
+                attach: function(plugin, settings) {
+                    var el = $(this); // input
+                    var select = $('<select></select>')
+                        .addClass(el.attr('class'))
+                        .on('change', function(e) {
+                            plugin.settings.onChange.apply(el);
+                        });
+                    for(var key in settings.items) {
+                        var option = $('<option></option>').attr('value', key).html(settings.items[key]);
+                        if (key == el.val())
+                            option.attr('selected', 'selected');
+                        select.append(option);
+                    }
+                    el.replaceWith(select);
+                },
+                detach: function(plugin) {
+                    var el = $(this);
+                    el.replaceWith(plugin.buildValue(''));
                 }
             }
         },
@@ -429,6 +451,7 @@ THE SOFTWARE.
                 .val(defaultValue || '')
                 .on('change', plugin.settings.onValueChange)
                 .on('keyup', function() {
+                    console.log(this);
                     var $this = $(this);
                     if ($this.data('previousSearch') != $this.val()) {
                         window.clearTimeout($this.data('timerId'));
@@ -498,15 +521,18 @@ THE SOFTWARE.
             var value = $this.parent().children('.ft-value');
             var editor = field.data('editor');
             var editorSettings = field.data('editorSettings');
-            var currentEditor = value.data('editor');
+            var currentEditor = $this.data('currentEditor');
             
             // detach old editor
-            if (currentEditor)
-                currentEditor.detach.apply(value, [plugin, currentEditor]);
+            if (currentEditor) {
+                currentEditor.detach.apply(value, [plugin]);
+                $this.data('currentEditor', null);
+            }
             
             // attach new editor
             if (editor) {
-                editor.attach.apply(value, [plugin, editor, editorSettings]);
+                editor.attach.apply(value, [plugin, $.extend(true, {}, editor.settings, editorSettings)]);
+                $this.data('currentEditor', editor);
             }
         }
         
