@@ -451,7 +451,6 @@ THE SOFTWARE.
                 .val(defaultValue || '')
                 .on('change', plugin.settings.onValueChange)
                 .on('keyup', function() {
-                    console.log(this);
                     var $this = $(this);
                     if ($this.data('previousSearch') != $this.val()) {
                         window.clearTimeout($this.data('timerId'));
