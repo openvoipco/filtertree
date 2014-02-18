@@ -33,16 +33,16 @@ THE SOFTWARE.
 */
 
 (function($) {
-    
+
     if (!$.isPlainObject(JSON))
         throw new Error('JSON is required');
-    
+
     if (!$.isFunction($.cookie))
         throw new Error('$.cookie is required');
-    
+
     String.prototype.hashCode = function() {
         var hash = 0;
-        if (this.length == 0)
+        if (!this.length)
             return hash;
         for (i = 0; i < this.length; i++) {
             char = this.charCodeAt(i);
@@ -50,8 +50,8 @@ THE SOFTWARE.
             hash = hash & hash;
         }
         return hash;
-    }
-    
+    };
+
     $.ftSettings = {
         salt: '', // is being used in the state hash creation (good for unique state per control)
         maxGroups: 100, // maximum groups in a group
@@ -114,16 +114,13 @@ THE SOFTWARE.
                 },
                 attach: function(plugin, settings) {
                     var el = $(this);
-                    if ($.isFunction($.fn.datepicker)) {
-                        el.datepicker(settings)
-                        .on('changeDate', plugin.settings.onChange);
-                    }
+                    if ($.isFunction($.fn.datepicker))
+                        el.datepicker(settings);
                 },
                 detach: function(plugin) {
                     var el = $(this);
-                    if ($.isFunction($.fn.datepicker)) {
+                    if ($.isFunction($.fn.datepicker))
                         $(this).datepicker('remove');
-                    }
                 }
             },
             listPicker: {
@@ -137,7 +134,7 @@ THE SOFTWARE.
                         .on('change', plugin.settings.onChange);
                     for(var key in settings.items) {
                         var option = $('<option></option>').attr('value', key).html(settings.items[key]);
-                        if (key == el.val())
+                        if (key === el.val())
                             option.attr('selected', 'selected');
                         select.append(option);
                     }
@@ -149,11 +146,11 @@ THE SOFTWARE.
                 },
                 conditions: ['eq']
             }
-        },        
+        },
         onChange: function() {}, // use it for handling any filters change
         onInit: function() {} // use it to handle init
     };
-    
+
     $.filtertree = function(element, settings) {
 
         var $element = $(element);
@@ -162,7 +159,7 @@ THE SOFTWARE.
         // constructor
         plugin.init = function() {
             plugin.settings = $.extend(true, {}, $.ftSettings, settings);
-            
+
             // normalize filters
             if (!$.isPlainObject(plugin.settings.filters))
                 throw new Error('Object expected');
@@ -177,9 +174,9 @@ THE SOFTWARE.
                 .addClass('filtertree')
                 .empty()
                 .append(plugin.buildRoot(plugin.settings.defaultConcat));
-        
+
             plugin.settings.onInit.apply(plugin);
-        }
+        };
 
         // public methods
         plugin.save = function() {
@@ -190,7 +187,7 @@ THE SOFTWARE.
             var raw = $.cookie(getConfigHash());
             if (!raw)
                 return;
-            
+
             var data = $.parseJSON(raw);
             if ($.isPlainObject(data) && ('concat' in data)) {
                 $element.empty();
@@ -198,17 +195,17 @@ THE SOFTWARE.
                 plugin.setData(data, plugin.getRoot());
             }
         };
-        
+
         plugin.getRoot = function() {
             return $element.find('> .ft-root');
         };
-        
+
         plugin.setData = function(data, group) {
             if (!$.isPlainObject(data))
                 throw new Error('Data is not object');
             if (!(group instanceof $) || !group.length)
                 throw new Error('Group is not ready');
-            
+
             if ('concat' in data) { // this is a group
                 if (!('filters' in data))
                     throw new Error('Property "filters" is requried');
@@ -227,7 +224,7 @@ THE SOFTWARE.
                         plugin.setData(filter, group);
                     }
                 }
-                
+
             } else { // this is a field
                 if (!('name' in data))
                     throw new Error('Property "name" is requried');
@@ -238,15 +235,15 @@ THE SOFTWARE.
                     getProp(data, 'value', '')
                 ));
             }
-        }
-        
+        };
+
         plugin.getData = function(group) {
             if (!(group instanceof $) || !group.length)
                 throw new Error('Group is not ready');
-            
+
             var result = null;
             var concat = group.find('> .ft-controls > .ft-concat');
-            if (concat.length == 1) {
+            if (concat.length === 1) {
                 result = {
                     concat: concat.val(),
                     filters: []
@@ -268,11 +265,11 @@ THE SOFTWARE.
             }
             return result;
         };
-        
+
         plugin.getQuery = function() {
             return plugin.buildQuery(plugin.getData(plugin.getRoot()));
         };
-        
+
         plugin.buildQuery = function(data) {
             var result = '';
             if ($.isPlainObject(data)) {
@@ -289,50 +286,50 @@ THE SOFTWARE.
             }
             return result;
         };
-                
+
         plugin.onAddFilter = function(e) {
             e.preventDefault();
             var $this = $(this);
             var ul = $this.parent().parent();
-            
+
             // check max
             if (ul.find('> .ft-filter').length >= plugin.settings.maxFilters)
                 return;
 
             // add
             ul.append(plugin.buildFilter(plugin.settings.defaultCond, plugin.settings.defaultField));
-            
+
             plugin.settings.onChange.apply(this);
         };
-        
+
         plugin.onAddGroup = function(e) {
             e.preventDefault();
             var $this = $(this);
             var ul = $this.parent().parent();
-            
+
             // check max
             if (ul.find('> .ft-group').length >= plugin.settings.maxGroups)
                 return;
-            
+
             // add
             ul.append(
                 $('<li></li>')
                 .addClass('ft-group')
                 .append(plugin.buildGroup(plugin.settings.defaultConcat).append(plugin.buildFilter(plugin.settings.defaultCond, plugin.settings.defaultField)))
             );
-    
+
             plugin.settings.onChange.apply(this);
         };
-        
+
         plugin.onRemoveCondition = function(e) {
             e.preventDefault();
             var $this = $(this);
             var li = $this.parent();
             var ul = li.parent();
-            
+
             // remove node
             li.remove();
-            
+
             // remove parents if empty
             var remove_ul = null;
             while (!ul.find('.ft-filter').length && !ul.hasClass('ft-root')) {
@@ -341,13 +338,13 @@ THE SOFTWARE.
             }
             if (remove_ul !== null)
                 remove_ul.remove();
-            
+
             plugin.settings.onChange.apply(this);
         };
-        
+
         plugin.onRemoveFilters = function(e) {
             e.preventDefault();
-            
+
             if ($element.find('.ft-filter, .ft-group').length) {
                 $element
                     .empty()
@@ -362,9 +359,9 @@ THE SOFTWARE.
             root.find('.ft-controls').append(
                 plugin.buildButton(plugin.onRemoveFilters, trans('remove.filters'), plugin.settings.style.resetButtonClass)
             );
-            
+
             return root;
-        }
+        };
 
         plugin.buildButton = function(handler, title, cssClass) {
             var button = $('<button></button>')
@@ -372,13 +369,13 @@ THE SOFTWARE.
                 .addClass(plugin.settings.style.buttonClass)
                 .attr('title', title)
                 .on('click', handler);
-    
+
             if (plugin.settings.style.addButtonText)
                 button.html(title);
-            
+
             return button;
-        }
-        
+        };
+
         plugin.buildFields = function(defaultField) {
             var data = [];
             for (var key in plugin.settings.filters) {
@@ -395,16 +392,16 @@ THE SOFTWARE.
                     option.attr('selected', 'selected');
                 data.push(option);
             }
-            
+
             return $('<select><select>')
                 .attr('title', trans('select.field'))
                 .addClass('ft-field')
                 .addClass(plugin.settings.style.fieldClass)
                 .append(data)
                 .on('change', onChangeField)
-                .on('change', plugin.settings.onChange)
+                .on('change', plugin.settings.onChange);
         };
-        
+
         // make condition list
         plugin.buildConditions = function(defaultCond) {
             var data = [];
@@ -422,7 +419,7 @@ THE SOFTWARE.
                 .append(data)
                 .on('change', plugin.settings.onChange);
         };
-            
+
         // make concats list
         plugin.buildConcats = function(defaultConcat) {
             var data = [];
@@ -439,7 +436,7 @@ THE SOFTWARE.
                 .append(data)
                 .on('change', plugin.settings.onChange);
         };
-        
+
         // make value field
         plugin.buildValue = function(defaultValue) {
             return $('<input>')
@@ -452,7 +449,7 @@ THE SOFTWARE.
                     plugin.delayHandler.apply(this, [plugin.settings.onChange, plugin.settings.onChangeDelay]);
                 });
         };
-        
+
         plugin.buildGroup = function(defaultConcat) {
             var node = $('<ul></ul>')
                 .append(
@@ -463,10 +460,10 @@ THE SOFTWARE.
                     .append(plugin.buildButton(plugin.onAddFilter, trans('add.condition'), plugin.settings.style.addButtonClass))
                     .append(plugin.buildButton(plugin.onAddGroup, trans('add.group'), plugin.settings.style.addGroupButtonClass))
                 );
-        
+
             return node;
         };
-        
+
         plugin.buildFilter = function(defaultCond, defaultField, defaultValue) {
             var fields = plugin.buildFields(defaultField);
             var node = $('<li></li>')
@@ -476,23 +473,23 @@ THE SOFTWARE.
                 .append(plugin.buildConditions(defaultCond))
                 .append(plugin.buildValue(defaultValue))
                 .append(plugin.buildButton(plugin.onRemoveCondition, trans('remove.condition'), plugin.settings.style.removeButtonClass));
-            
+
             // init field
             onChangeField.apply(fields);
-            
+
             return node;
         };
-        
+
         plugin.delayHandler = function(callback, delay) {
             var $this = $(this);
-            if ($this.data('previousSearch') != $this.val() && $.isFunction(callback)) {
+            if ($this.data('previousSearch') !== $this.val() && $.isFunction(callback)) {
                 window.clearTimeout($this.data('timerId'));
                 $this.data('previousSearch', $this.val());
                 $this.data('timerId', window.setTimeout(function() {
                     callback.apply($this);
                 }, delay));
             }
-        };        
+        };
 
 
         // private methods
@@ -504,10 +501,10 @@ THE SOFTWARE.
             ];
             for (var key in plugin.settings.filters)
                 hash.push(key);
-            
+
             return hash.join(':').hashCode().toString();
         };
-        
+
         var getProp = function(obj, key, defaultValue) {
             return ($.isPlainObject(obj) && (key in obj)) ? obj[key] : defaultValue;
         };
@@ -515,39 +512,38 @@ THE SOFTWARE.
         var trans = function(id) {
             return getProp(plugin.settings.i18n, id, id);
         };
-        
+
         var onChangeField = function(e) {
             var $this = $(this); // select
             var field = $this.children(':selected'); // option
             var cond = $this.parent().children('.ft-cond'); // conditions select
             var editor = field.data('editor');
             var currentEditor = $this.data('currentEditor');
-            
+
             // detach old editor
             if (currentEditor) {
                 var value = $this.parent().children('.ft-value');
-                
+
                 currentEditor.detach.apply(value, [plugin]);
                 $this.data('currentEditor', null);
             }
-            
+
             // enable all conditions
             cond.children().removeAttr('disabled');
-            
+
             // attach new editor
             if (editor) {
                 var editorSettings = field.data('editorSettings');
                 var value = $this.parent().children('.ft-value'); // get updated value element
-                
+
                 editor.attach.apply(value, [plugin, $.extend(true, {}, editor.settings, editorSettings)]);
                 $this.data('currentEditor', editor);
-                
+
                 // filter conditions
                 if ($.isArray(editor.conditions)) {
                     cond.children().attr('disabled', 'disabled');
                     for (var i = 0; i < editor.conditions.length; i++) {
-                        var c = editor.conditions[i];
-                        cond.children('option[value="' + c + '"]').removeAttr('disabled');
+                        cond.children('option[value="' + editor.conditions[i] + '"]').removeAttr('disabled');
                     }
                     var option = cond.children(':selected'); // selecting current condition
                     if (option.is(':disabled')) {
@@ -559,23 +555,23 @@ THE SOFTWARE.
                         cond.val(option.attr('value'));
                     } else {
                         cond.val('');
-                    }                    
+                    }
                 }
             }
-        }
-        
+        };
+
         // construct
         plugin.init();
-    }
+    };
 
     $.fn.filtertree = function(options) {
         return this.each(function() {
-            if (undefined == $(this).data('filtertree')) {
+            if (undefined === $(this).data('filtertree')) {
                 var plugin = new $.filtertree(this, options);
-                
+
                 $(this).data('filtertree', plugin);
             }
         });
-    }
+    };
 
 })(jQuery);
